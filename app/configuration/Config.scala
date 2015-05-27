@@ -26,8 +26,9 @@ object Config {
 
 
   object Identity {
-    val idConfig = config.getConfig("identity")
+    private val idConfig = config.getConfig("identity")
 
-    val root = idConfig.getString("root")
+    val baseUri = idConfig.getString("baseUri")
+    val apiToken = idConfig.getString("apiToken")
   }
 }
