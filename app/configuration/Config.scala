@@ -8,6 +8,8 @@ import net.kencochrane.raven.dsn.Dsn
 import scala.util.Try
 
 object Config {
+  val appName = "subscriptions-frontend"
+
   val config = ConfigFactory.load()
 
   val googleAuthConfig = {
