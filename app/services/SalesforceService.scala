@@ -1,18 +1,15 @@
 package services
 
-import akka.agent.Agent
 import com.gu.membership.salesforce.Member.Keys
 import com.gu.membership.salesforce.{Authentication, MemberId, MemberRepository, Scalaforce}
 import com.typesafe.scalalogging.LazyLogging
 import configuration.Config
 import model.PersonalData
-import play.api.Logger
-import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsObject, Json}
+import utils.ScheduledTask
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 trait SalesforceService extends LazyLogging {
 
@@ -56,44 +53,4 @@ object SalesforceRepo extends MemberRepository {
 
     def authentication: Authentication = authTask.get()
   }
-}
-
-trait ScheduledTask[T] {
-  import play.api.Play.current
-
-  val initialValue: T
-  val initialDelay: FiniteDuration
-  val interval: FiniteDuration
-
-  val name = getClass.getSimpleName
-
-  private implicit val system = Akka.system
-  lazy val agent = Agent[T](initialValue)
-
-  def refresh(): Future[T]
-
-  def start() {
-    Logger.debug(s"Starting $name scheduled task")
-    system.scheduler.schedule(initialDelay, interval) {
-      agent.sendOff { _ =>
-        Logger.debug(s"Refreshing $name scheduled task")
-        Await.result(refresh(), 25.seconds)
-      }
-    }
-  }
-
-  def get() = agent.get()
-}
-
-object ScheduledTask {
-  def apply[T](taskName: String, initValue: T, initDelay: FiniteDuration, intervalPeriod: FiniteDuration)(refresher: => Future[T]) =
-    new ScheduledTask[T] {
-      val initialValue = initValue
-      val initialDelay = initDelay
-      val interval = intervalPeriod
-
-      override val name = taskName
-
-      def refresh(): Future[T] = refresher
-    }
 }
