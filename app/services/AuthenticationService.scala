@@ -7,5 +7,5 @@ import configuration.Config
 object AuthenticationService extends AuthenticationService {
   override def idWebAppSigninUrl(returnUrl: String): String = "todo"
 
-  override val identityKeys: IdentityKeys = Config.Identity.idKeys
+  override val identityKeys: IdentityKeys = Config.Identity.keys
 }

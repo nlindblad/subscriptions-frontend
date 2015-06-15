@@ -5,6 +5,7 @@ import com.gu.identity.cookie.{PreProductionKeys, ProductionKeys}
 import com.gu.membership.salesforce.SalesforceConfig
 import com.typesafe.config.ConfigFactory
 import net.kencochrane.raven.dsn.Dsn
+import com.netaporter.uri.dsl._
 
 import scala.util.Try
 
@@ -26,6 +27,8 @@ object Config {
   val stage = config.getString("stage")
   val stageProd: Boolean = stage == "PROD"
 
+  val subscriptionsUrl = config.getString("subscriptions.url")
+
   val sentryDsn = Try(new Dsn(config.getString("sentry.dsn")))
 
 
@@ -35,7 +38,13 @@ object Config {
     val baseUri = idConfig.getString("baseUri")
     val apiToken = idConfig.getString("apiToken")
 
-    val idKeys = if (idConfig.getBoolean("production.keys")) new ProductionKeys else new PreProductionKeys
+    val keys = if (idConfig.getBoolean("production.keys")) new ProductionKeys else new PreProductionKeys
+
+    val webAppUrl = idConfig.getString("webapp.url")
+    
+    def webAppSigninUrl(uri: String): String =
+      (webAppUrl / "signin") ? ("returnUrl" -> s"$subscriptionsUrl$uri") ? ("skipConfirmation" -> "true")
+
   }
 
   val Salesforce =  SalesforceConfig.from(config.getConfig("touchpoint.backend.environments").getConfig(stage), stage)
