@@ -20,7 +20,7 @@ class CheckoutService(identityService: IdentityService) extends LazyLogging {
       logger.info(s"User does not have an Identity account, creating a Guest one.")
 
       identityService.registerGuest(subscriptionData.personalData).map { guestFuture =>
-        guestFuture.right.map(user => IdMinimalUser(user.id, None))
+        guestFuture.right.map(id => IdMinimalUser(id, None))
       }
     }
   }

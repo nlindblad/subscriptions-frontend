@@ -35,7 +35,7 @@ object Config {
     val baseUri = idConfig.getString("baseUri")
     val apiToken = idConfig.getString("apiToken")
 
-    val idKeys = if (config.getBoolean("identity.production.keys")) new ProductionKeys else new PreProductionKeys
+    val idKeys = if (idConfig.getBoolean("production.keys")) new ProductionKeys else new PreProductionKeys
   }
 
   val Salesforce =  SalesforceConfig.from(config.getConfig("touchpoint.backend.environments").getConfig(stage), stage)
