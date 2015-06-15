@@ -1,6 +1,7 @@
 package configuration
 
 import com.gu.googleauth.GoogleAuthConfig
+import com.gu.identity.cookie.{PreProductionKeys, ProductionKeys}
 import com.gu.membership.salesforce.SalesforceConfig
 import com.typesafe.config.ConfigFactory
 import net.kencochrane.raven.dsn.Dsn
@@ -33,6 +34,8 @@ object Config {
 
     val baseUri = idConfig.getString("baseUri")
     val apiToken = idConfig.getString("apiToken")
+
+    val idKeys = if (config.getBoolean("identity.production.keys")) new ProductionKeys else new PreProductionKeys
   }
 
   val Salesforce =  SalesforceConfig.from(config.getConfig("touchpoint.backend.environments").getConfig(stage), stage)

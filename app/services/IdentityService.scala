@@ -1,10 +1,12 @@
 package services
 
 import com.amazonaws.regions.{Regions, Region}
+import com.gu.identity.play.IdUser
 import com.gu.monitoring.{AuthenticationMetrics, RequestMetrics, StatusMetrics, CloudWatch}
 import com.typesafe.scalalogging.LazyLogging
 import configuration.Config
 import model.PersonalData
+import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json._
 import play.api.libs.ws.{WSRequest, WS, WSRequestHolder, WSResponse}
@@ -12,37 +14,43 @@ import play.api.libs.ws.{WSRequest, WS, WSRequestHolder, WSResponse}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-case class IdUser(id: String)
+case class GuestUserNotCreated(s : String) extends RuntimeException
 
-class IdentityService(identityApiClient: IdentityApiClient) {
-  def userLookupByScGuU(cookieValue: String): Future[Option[IdUser]] = identityApiClient.userLookupByScGuUCookie(cookieValue)
-    .map(resp => jsonToIdUser(resp.json))
+class IdentityService(identityApiClient: IdentityApiClient) extends LazyLogging {
 
-  def userLookupByEmail(email: String): Future[Option[IdUser]] = identityApiClient.userLookupByEmail(email)
-    .map(resp => jsonToIdUser(resp.json \ "user" get))
+  def registerGuest(personalData: PersonalData): Future[Either[GuestUserNotCreated, IdUser]] = {
 
-  def registerGuest(personalData: PersonalData): Future[Option[IdUser]] = identityApiClient.createGuest(JsObject(Map(
-    "primaryEmailAddress" -> JsString(personalData.email),
-    "privateFields" -> JsObject(Map(
-      "firstName" -> JsString(personalData.firstName),
-      "secondName" -> JsString(personalData.lastName),
-      "billingAddress1" -> JsString(personalData.address.house),
-      "billingAddress2" -> JsString(personalData.address.street),
-      "billingAddress3" -> JsString(personalData.address.town),
-      "billingPostcode" -> JsString(personalData.address.postcode),
-      "billingCountry" -> JsString("United Kingdom")
-    ).toSeq),
-    "statusFields" -> JsObject(Map("receiveGnmMarketing" -> JsString("true")).toSeq)
-  ).toSeq))
-  .map(resp => jsonToIdUser(resp.json \ "user" get))
+    val json = JsObject(Map(
+      "primaryEmailAddress" -> JsString(personalData.email),
+      "privateFields" -> JsObject(Map(
+        "firstName" -> JsString(personalData.firstName),
+        "secondName" -> JsString(personalData.lastName),
+        "billingAddress1" -> JsString(personalData.address.house),
+        "billingAddress2" -> JsString(personalData.address.street),
+        "billingAddress3" -> JsString(personalData.address.town),
+        "billingPostcode" -> JsString(personalData.address.postcode),
+        "billingCountry" -> JsString("United Kingdom")
+      ).toSeq),
+      "statusFields" -> JsObject(Map("receiveGnmMarketing" -> JsString("true")).toSeq)
+    ).toSeq)
 
-  private val jsonToIdUser = (json: JsValue) => (json \ "id").asOpt[String].map(IdUser)
+    for {
+      response <- identityApiClient.createGuest(json)
+
+    } yield {
+      val jsResult = (response.json \ "user").validate[IdUser]
+      if (jsResult.isError) {
+        Logger.error(s"Id API response : $jsResult")
+        Left(GuestUserNotCreated(s"User not created $jsResult"))
+      } else Right(jsResult.get)
+
+    }
+  }
 }
 
 object IdentityService extends IdentityService(IdentityApiClient)
 
 trait IdentityApiClient {
-  def userLookupByScGuUCookie: String => Future[WSResponse]
 
   def createGuest: JsValue => Future[WSResponse]
 

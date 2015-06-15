@@ -1,52 +1,29 @@
 package services
 
-import java.util.NoSuchElementException
+import com.gu.identity.play.{IdMinimalUser, IdUser}
+
+import scala.concurrent.Future
 
 import com.typesafe.scalalogging.LazyLogging
 import model.SubscriptionData
-
+import play.api.mvc.Request
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.Left
 
-sealed class CheckoutException extends RuntimeException
-object GuestUserNotCreated extends CheckoutException
-object InvalidLoginCookie extends CheckoutException
-object SalesforceUserNotCreated extends CheckoutException
+class CheckoutService(identityService: IdentityService) extends LazyLogging {
 
-class CheckoutService(identityService: IdentityService, salesforceService: SalesforceService) extends LazyLogging {
+  def processSubscription(subscriptionData: SubscriptionData, request: Request[_]): Future[Either[GuestUserNotCreated, IdMinimalUser]] =  {
 
-  def processSubscription(subscriptionData: SubscriptionData, scGuUCookie: Option[String] = None): Future[Either[CheckoutException, String]] = {
+    val lookupUser = AuthenticationService.authenticatedUserFor(request)
 
-    val preserveFailureReason = (ex: CheckoutException) => Future.successful(Left(ex))
+    if(lookupUser.isDefined) Future(Right(lookupUser.get))
+    else {
+      logger.info(s"User does not have an Identity account, creating a Guest one.")
 
-    val lookupUser: Future[Either[CheckoutException, IdUser]] =
-      scGuUCookie.map(
-        identityService.userLookupByScGuU(_)
-          .map(_.toRight(InvalidLoginCookie)))
-        .orElse(
-          Some(identityService.userLookupByEmail(subscriptionData.personalData.email)
-            .filter(_.isDefined)
-            .recoverWith { case _: NoSuchElementException => identityService.registerGuest(subscriptionData.personalData) }
-            .map(_.toRight(GuestUserNotCreated))))
-        .get
-
-    def createSFUser(idUser: Either[CheckoutException, IdUser]) = idUser.fold(preserveFailureReason,
-      salesforceService.createSFUser(subscriptionData.personalData, _)
-        .map(Right(_)).recoverWith {
-          case e: Throwable =>
-            logger.error("Could not create Salesforce user", e)
-            Future.successful(Left(SalesforceUserNotCreated))
-        })
-
-    for {
-      idUser <- lookupUser
-      sfUser <- createSFUser(idUser)
-    } yield {
-      sfUser.right.map(_ => "AB123456")
+      identityService.registerGuest(subscriptionData.personalData).map { guestFuture =>
+        guestFuture.right.map(user => IdMinimalUser(user.id, None))
+      }
     }
   }
-
 }
 
-object CheckoutService extends CheckoutService(IdentityService, SalesforceService)
+object CheckoutService extends CheckoutService(IdentityService)

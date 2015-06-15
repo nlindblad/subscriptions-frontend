@@ -1,5 +1,6 @@
 package services
 
+import com.gu.identity.play.IdUser
 import com.gu.membership.salesforce.Member.Keys
 import com.gu.membership.salesforce.{Authentication, MemberId, MemberRepository, Scalaforce}
 import com.typesafe.scalalogging.LazyLogging

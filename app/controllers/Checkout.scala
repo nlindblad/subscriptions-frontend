@@ -6,7 +6,6 @@ import play.api.mvc._
 import services.CheckoutService
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 object Checkout extends Controller {
 
@@ -51,17 +50,11 @@ object Checkout extends Controller {
 
   val renderCheckout = GoogleAuthenticatedStaffAction(Ok(views.html.checkout.payment(subscriptionForm)))
 
-  val handleCheckout = NoCacheAction.async { implicit request =>
-    val formWithData = subscriptionForm.bindFromRequest
-
-    if (formWithData.hasErrors) {
-      Future.successful(Ok(views.html.checkout.payment(formWithData)))
-    }
-    else {
-      val subscriptionData: SubscriptionData = formWithData.get
-      CheckoutService.processSubscription(subscriptionData, request.cookies.find(_.name == "SC_GU_U").map(_.value))
-        .map(_ => Redirect(routes.Checkout.thankyou()))
-    }
+  //todo GoogleAuth the Action
+  //todo handle error https://www.playframework.com/documentation/2.4.x/ScalaForms
+  val handleCheckout = NoCacheAction.async(parse.form(subscriptionForm)) { implicit request =>
+    CheckoutService.processSubscription(request.body, request)
+      .map(_ => Redirect(routes.Checkout.thankyou()))
   }
 
   def thankyou = GoogleAuthenticatedStaffAction(Ok(views.html.checkout.thankyou()))
