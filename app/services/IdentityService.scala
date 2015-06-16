@@ -1,6 +1,7 @@
 package services
 
 import com.amazonaws.regions.{Region, Regions}
+import com.gu.identity.play.IdUser
 import com.gu.monitoring.{AuthenticationMetrics, CloudWatch, RequestMetrics, StatusMetrics}
 import com.typesafe.scalalogging.LazyLogging
 import configuration.Config
@@ -16,6 +17,11 @@ import scala.concurrent.Future
 case class GuestUserNotCreated(s : String) extends RuntimeException
 
 class IdentityService(identityApiClient: IdentityApiClient) extends LazyLogging {
+
+  def userLookupByScGuU(cookieValue: String): Future[Option[IdUser]] =
+    identityApiClient.userLookupByScGuUCookie(cookieValue).map { response =>
+      (response.json \ "user").asOpt[IdUser]
+    }
 
   def registerGuest(personalData: PersonalData): Future[Either[GuestUserNotCreated, String]] = {
 
@@ -49,6 +55,8 @@ class IdentityService(identityApiClient: IdentityApiClient) extends LazyLogging 
 object IdentityService extends IdentityService(IdentityApiClient)
 
 trait IdentityApiClient {
+
+  def userLookupByScGuUCookie: String => Future[WSResponse]
 
   def createGuest: JsValue => Future[WSResponse]
 
@@ -99,7 +107,7 @@ object IdentityApiClient extends IdentityApiClient with LazyLogging {
   }
 
   private def authoriseCall = (request: WSRequest) =>
-    request.withHeaders(("Authorization", s"Bearer ${Config.Identity.apiToken}"))
+    request.withHeaders(("X-GU-ID-Client-Access-Token", s"Bearer ${Config.Identity.apiToken}"))
 
   def userLookupByEmail: String => Future[WSResponse] = {
     val endpoint = authoriseCall(WS.url(s"$identityEndpoint/user"))
@@ -107,6 +115,14 @@ object IdentityApiClient extends IdentityApiClient with LazyLogging {
     email => endpoint.withQueryString(("emailAddress", email)).execute()
       .withWSFailureLogging(endpoint)
       .withCloudwatchMonitoringOfGet
+  }
+
+  def userLookupByScGuUCookie: String => Future[WSResponse] = {
+    val endpoint = authoriseCall(WS.url(s"$identityEndpoint/user/me").withHeaders(("Referer", s"$identityEndpoint/")))
+
+    cookieValue => endpoint.withHeaders(("X-GU-ID-FOWARDED-SC-GU-U", cookieValue)).execute()
+        .withWSFailureLogging(endpoint)
+        .withCloudwatchMonitoringOfGet
   }
 
   def createGuest: JsValue => Future[WSResponse] = {

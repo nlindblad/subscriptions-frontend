@@ -3,9 +3,10 @@ package controllers
 import actions.CommonActions._
 import model.{AddressData, PaymentData, PersonalData, SubscriptionData}
 import play.api.mvc._
-import services.CheckoutService
+import services.{IdentityService, CheckoutService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object Checkout extends Controller {
 
@@ -48,7 +49,13 @@ object Checkout extends Controller {
     paymentDataMapping
   )(SubscriptionData.apply)(SubscriptionData.unapply))
 
-  val renderCheckout = GoogleAuthenticatedStaffAction(Ok(views.html.checkout.payment(subscriptionForm)))
+  val renderCheckout = GoogleAuthenticatedStaffAction { implicit request =>
+    val idUserFutureOpt = request.cookies.find(_.name == "SC_GU_U").map {cookie =>
+      IdentityService.userLookupByScGuU(cookie.value)
+    }.getOrElse(Future.successful(None))
+
+    Ok(views.html.checkout.payment(subscriptionForm))
+  }
 
   //todo GoogleAuth the Action
   //todo handle error https://www.playframework.com/documentation/2.4.x/ScalaForms
