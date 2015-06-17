@@ -58,7 +58,6 @@ object Checkout extends Controller {
     idUserFutureOpt.map { idUserOpt =>
       val idUserData: (PrivateFields => Option[String]) => Option[String] =
         fieldName => idUserOpt.flatMap(_.privateFields.flatMap(fieldName))
-      println(idUserOpt)
       Ok(
         views.html.checkout.payment(
           idUserData(_.firstName),
