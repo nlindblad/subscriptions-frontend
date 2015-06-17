@@ -1,6 +1,7 @@
 package controllers
 
 import actions.CommonActions._
+import com.gu.identity.play.PrivateFields
 import model.{AddressData, PaymentData, PersonalData, SubscriptionData}
 import play.api.mvc._
 import services.{IdentityService, CheckoutService}
@@ -49,12 +50,26 @@ object Checkout extends Controller {
     paymentDataMapping
   )(SubscriptionData.apply)(SubscriptionData.unapply))
 
-  val renderCheckout = GoogleAuthenticatedStaffAction { implicit request =>
+  val renderCheckout = GoogleAuthenticatedStaffAction.async { implicit request =>
     val idUserFutureOpt = request.cookies.find(_.name == "SC_GU_U").map {cookie =>
       IdentityService.userLookupByScGuU(cookie.value)
     }.getOrElse(Future.successful(None))
 
-    Ok(views.html.checkout.payment(subscriptionForm))
+    idUserFutureOpt.map { idUserOpt =>
+      val idUserData: (PrivateFields => Option[String]) => Option[String] =
+        fieldName => idUserOpt.flatMap(_.privateFields.flatMap(fieldName))
+      println(idUserOpt)
+      Ok(
+        views.html.checkout.payment(
+          idUserData(_.firstName),
+          idUserData(_.secondName),
+          idUserOpt.map(_.primaryEmailAddress),
+          idUserData(_.billingAddress1),
+          idUserData(_.billingAddress2),
+          idUserData(_.billingAddress3),
+          idUserData(_.billingPostcode))
+      )
+    }
   }
 
   //todo GoogleAuth the Action

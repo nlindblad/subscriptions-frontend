@@ -1,6 +1,7 @@
-@(subsciptionForm: Form[model.SubscriptionData])
-    @import configuration.Config
+@(first: Option[String], last: Option[String], email: Option[String],
+  addressLine1: Option[String], addressLine2: Option[String], town: Option[String], postcode: Option[String])
 
+@import configuration.Config
 
 @main("Checkout | Subscriptions | The Guardian") {
 
@@ -24,41 +25,37 @@
                     <div class="fieldset__fields">
                         <div class="form-field">
                             <label class="label" for="first">First name</label>
-                            <input type="text" class="input-text js-checkout-first" name="first" id="first">
+                            <input type="text" class="input-text js-checkout-first" name="first" id="first" value="@first">
                         </div>
                         <div class="form-field">
                             <label class="label" for="last">Last name</label>
-                            <input type="text" class="input-text js-checkout-last" name="last" id="last">
+                            <input type="text" class="input-text js-checkout-last" name="last" id="last" value="@last">
                         </div>
                         <div class="form-field">
                             <label class="label" for="email">Email address</label>
-                            <input type="email" class="input-text js-checkout-email" name="email" id="email">
+                            <input type="email" class="input-text js-checkout-email" name="email" id="email" value ="@email">
                         </div>
                         <div class="form-field">
                             <label class="label" for="confirm">Confirm email address</label>
-                            <input type="email" class="input-text" name="confirm" id="confirm">
+                            <input type="email" class="input-text" name="confirm" id="confirm" value ="@email">
                         </div>
-                        <div class="js-checkout-full-address is-hidden">
+                        <div class="js-checkout-full-address">
                             <div class="form-field">
-                                <label class="label" for="house">House name/number</label>
-                                <input type="text" class="input-text js-checkout-house" name="house" id="house">
+                                <label class="label" for="house">Address line 1</label>
+                                <input type="text" class="input-text js-checkout-house" name="house" id="house" value="@addressLine1">
                             </div>
                             <div class="form-field">
-                                <label class="label" for="street">Street</label>
-                                <input type="text" class="input-text js-checkout-street" name="street" id="street">
+                                <label class="label" for="street">Address line 2</label>
+                                <input type="text" class="input-text js-checkout-street" name="street" id="street" value="@addressLine2">
                             </div>
                             <div class="form-field">
                                 <label class="label" for="town">Town/City</label>
-                                <input type="text" class="input-text js-checkout-town" name="town" id="town">
+                                <input type="text" class="input-text js-checkout-town" name="town" id="town" value="@town">
                             </div>
                         </div>
                         <div class="form-field">
                             <label class="label" for="postcode">Postcode</label>
-                            <input type="text" class="input-text input-text--small js-checkout-postcode" name="postcode" id="postcode">
-                            <button class="button button--large button--secondary button--no-arrow js-checkout-find-address">Find your address</button>
-                            <div class="form-note">
-                                <a href="#" class="js-checkout-manual-address">Enter billing address manually</a>
-                            </div>
+                            <input type="text" class="input-text input-text--small js-checkout-postcode" name="postcode" id="postcode" value="@postcode">
                         </div>
                         <div class="form-field">
                             <div class="checkbox">
