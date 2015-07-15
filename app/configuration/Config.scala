@@ -1,12 +1,13 @@
 package configuration
 
-import com.gu.googleauth.GoogleAuthConfig
+import com.gu.googleauth.{UserIdentity, GoogleAuthConfig}
 import com.gu.identity.cookie.{PreProductionKeys, ProductionKeys}
 import com.gu.membership.salesforce.SalesforceConfig
 import com.netaporter.uri.dsl._
 import com.typesafe.config.ConfigFactory
 import net.kencochrane.raven.dsn.Dsn
 import com.github.nscala_time.time.Imports._
+import play.api.mvc.Cookie
 
 import scala.util.Try
 
@@ -28,6 +29,24 @@ object Config {
 
   val stage = config.getString("stage")
   val stageProd: Boolean = stage == "PROD"
+
+  object QA {
+    val userIdentity =
+      UserIdentity(
+        email = "qa@example.com",
+        firstName = "QA Cookie",
+        lastName = "Passthrough",
+        exp = System.currentTimeMillis() * 2,
+        sub = "",
+        avatarUrl = None)
+
+    val passthroughCookie =
+      Cookie(
+        name = config.getString("qa.passthrough-cookie.name"),
+        value = config.getString("qa.passthrough-cookie.value"),
+        httpOnly = true
+      )
+  }
 
   object Identity {
     private val idConfig = config.getConfig("identity")

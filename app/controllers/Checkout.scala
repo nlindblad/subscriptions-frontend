@@ -18,7 +18,7 @@ object Checkout extends Controller with LazyLogging {
   def identityCookieOpt(implicit request: Request[_]): Option[Cookie] =
     request.cookies.find(_.name == "SC_GU_U")
 
-  def renderCheckout = GoogleAuthenticatedStaffAction.async { implicit request =>
+  def renderCheckout = QACookieAuthAction.async { implicit request =>
     getIdentityUserByCookie.map { idUserOpt =>
       val form = idUserOpt.map { idUser =>
         val data = SubscriptionData.fromIdUser(idUser)
