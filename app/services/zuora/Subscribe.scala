@@ -22,7 +22,7 @@ case class Subscribe(memberId: MemberId, data: SubscriptionData) extends ZuoraAc
     val payment =
       <ns1:PaymentMethod xsi:type="ns2:PaymentMethod">
         <ns2:Type>BankTransfer</ns2:Type>
-        <ns2:BankTransferType>DirectDebitUK</ns2:BankTransferType>
+        <ns2:BankTransferType>{data.paymentData.bankTransferType}</ns2:BankTransferType>
         <ns2:Country>{Countries.UK.alpha2}</ns2:Country>
         <ns2:BankTransferAccountName>{data.paymentData.holder}</ns2:BankTransferAccountName>
         <ns2:BankTransferAccountNumber>{data.paymentData.account}</ns2:BankTransferAccountNumber>
@@ -47,6 +47,7 @@ case class Subscribe(memberId: MemberId, data: SubscriptionData) extends ZuoraAc
           <ns2:CrmId>{memberId.salesforceAccountId}</ns2:CrmId>
           <ns2:sfContactId__c>{memberId.salesforceContactId}</ns2:sfContactId__c>
           <ns2:PaymentGateway>GoCardless - Zuora Instance</ns2:PaymentGateway>
+          <ns2:CommunicationProfileId>{data.paymentData.bankTransferType}</ns2:CommunicationProfileId>
         </ns1:Account>
         {payment}
         <ns1:BillToContact xsi:type="ns2:Contact">

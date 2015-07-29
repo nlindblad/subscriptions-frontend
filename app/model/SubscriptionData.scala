@@ -2,7 +2,19 @@ package model
 
 import com.gu.identity.play.IdUser
 
-case class PaymentData(account: String, sortCode1: String, sortCode2: String, sortCode3: String, holder: String) {
+
+trait PaymentType {
+  val bankTransferType: String
+  val communicationProfileId: String
+}
+
+trait DirectDebitUK extends PaymentType {
+  val bankTransferType = "DirectDebitUK"
+  val communicationProfileId = "Direct Debit Profile"
+}
+
+
+case class PaymentData(account: String, sortCode1: String, sortCode2: String, sortCode3: String, holder: String) extends DirectDebitUK {
   val sortCode = s"$sortCode1$sortCode2$sortCode3"
 }
 
