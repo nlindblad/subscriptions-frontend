@@ -2,23 +2,21 @@ package services.zuora
 
 import com.gu.membership.salesforce.MemberId
 import com.gu.membership.zuora.Countries
-import com.gu.membership.zuora.soap.Zuora.SubscribeResult
-import com.gu.membership.zuora.soap.ZuoraAction
+import com.gu.membership.zuora.soap.SubscribeResult
 import com.gu.membership.zuora.soap.ZuoraServiceHelpers._
-import model.{SubscriptionRequestData, SubscriptionData}
+import com.gu.membership.zuora.soap.actions.Action
+import model.{SubscriptionData, SubscriptionRequestData}
 import org.joda.time.{DateTime, Period}
-
-import scala.xml.{NodeSeq, Elem}
+import scala.xml.Elem
 
 case class Subscribe(
     memberId: MemberId,
     data: SubscriptionData,
     paymentDelay: Option[Period],
     requestData: SubscriptionRequestData
-  ) extends ZuoraAction[SubscribeResult] {
+  ) extends Action[SubscribeResult] {
 
   override protected val body: Elem = {
-
     val now = DateTime.now
     val effectiveDate = formatDateTime(now)
     val contractAcceptanceDate = paymentDelay.map(delay => formatDateTime(now.plus(delay))).getOrElse(effectiveDate)

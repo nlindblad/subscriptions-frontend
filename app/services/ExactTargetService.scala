@@ -1,7 +1,7 @@
 package services
 
 import akka.agent.Agent
-import com.gu.membership.zuora.soap.Zuora.SubscribeResult
+import com.gu.membership.zuora.soap.SubscribeResult
 import com.squareup.okhttp.Request.Builder
 import com.squareup.okhttp.{Response, MediaType, OkHttpClient, RequestBody}
 import com.typesafe.scalalogging.LazyLogging
