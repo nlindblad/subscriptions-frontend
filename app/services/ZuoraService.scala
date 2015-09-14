@@ -3,14 +3,15 @@ package services
 import com.gu.membership.salesforce.MemberId
 import com.gu.membership.zuora.{soap, ZuoraApiConfig}
 import com.gu.membership.zuora.soap._
-import com.gu.membership.zuora.soap.readers.Instances._
+import com.gu.membership.zuora.soap.Implicits._
+import com.gu.membership.zuora.soap.actions.subscribe
+import com.gu.membership.zuora.soap.actions.subscribe.Subscribe
 import com.gu.monitoring.ServiceMetrics
 import configuration.Config
 import model.zuora.{DigitalProductPlan, SubscriptionProduct}
 import model.{SubscriptionData, SubscriptionRequestData}
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
-import services.zuora.Subscribe
 import touchpoint.ZuoraProperties
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -70,6 +71,25 @@ class ZuoraApiClient(zuoraApiConfig: ZuoraApiConfig,
       throw new ZuoraServiceError(s"Cannot find default subscription rate plan charge for $subscription")
   }
 
-  override def createSubscription(memberId: MemberId, data: SubscriptionData, requestData: SubscriptionRequestData): Future[SubscribeResult] =
-    client.authenticatedRequest(Subscribe(memberId, data, Some(zuoraProperties.paymentDelayInDays), requestData))
+  override def createSubscription(memberId: MemberId, data: SubscriptionData, requestData: SubscriptionRequestData): Future[SubscribeResult] = {
+    val account = subscribe.Account.stripe(memberId, autopay = true)
+
+    val paymentMethod  = subscribe.BankTransfer(data.paymentData.holder,
+                                                data.paymentData.account,
+                                                data.paymentData.sortCode,
+                                                data.personalData.firstName,
+                                                data.personalData.lastName)
+
+    client.authenticatedRequest(Subscribe(account = account,
+                                paymentMethodOpt = Some(paymentMethod),
+                                ratePlanId = data.ratePlanId,
+                                firstName = data.personalData.firstName,
+                                lastName = data.personalData.lastName,
+                                address = data.personalData.address,
+                                paymentDelay = Some(zuoraProperties.paymentDelayInDays),
+                                casIdOpt = None,
+                                ipAddressOpt = Some(requestData.ipAddress),
+                                featureIds = Nil))
+  }
+
 }

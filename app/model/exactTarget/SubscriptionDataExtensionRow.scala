@@ -35,10 +35,10 @@ object SubscriptionDataExtensionRow {
       "Default payment method" -> formatPaymentMethod(paymentMethod.`type`),
       "First Name" -> personalData.firstName,
       "Last Name" -> personalData.lastName,
-      "Address 1" -> address.address1,
-      "Address 2" -> address.address2,
+      "Address 1" -> address.lineOne,
+      "Address 2" -> address.lineTwo,
       "City" -> address.town,
-      "Post Code" -> address.postcode,
+      "Post Code" -> address.postCode,
       //TODO hardcoded!
       "Country" -> "UK",
       "Account Name" -> paymentData.holder,

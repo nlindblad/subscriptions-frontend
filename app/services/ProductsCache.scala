@@ -4,9 +4,8 @@ import akka.actor.ActorSystem
 import com.gu.membership.util.FutureSupplier
 import com.gu.membership.zuora.soap
 import com.gu.membership.zuora.soap._
-import com.gu.membership.zuora.soap.readers.Instances._
+import com.gu.membership.zuora.soap.Implicits._
 import model.zuora.{BillingFrequency, DigitalProductPlan, SubscriptionProduct}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
