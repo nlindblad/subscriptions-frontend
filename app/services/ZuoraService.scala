@@ -3,7 +3,7 @@ package services
 import com.gu.membership.salesforce.MemberId
 import com.gu.membership.zuora.{soap, ZuoraApiConfig}
 import com.gu.membership.zuora.soap._
-import com.gu.membership.zuora.soap.Implicits._
+import com.gu.membership.zuora.soap.Readers._
 import com.gu.membership.zuora.soap.actions.subscribe
 import com.gu.membership.zuora.soap.actions.subscribe.Subscribe
 import com.gu.monitoring.ServiceMetrics
