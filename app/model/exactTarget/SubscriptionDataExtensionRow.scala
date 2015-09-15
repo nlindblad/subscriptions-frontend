@@ -1,6 +1,6 @@
 package model.exactTarget
 
-import com.gu.membership.zuora.soap._
+import com.gu.membership.zuora.soap.models.Query._
 import model.SubscriptionData
 import org.joda.time.DateTime
 import scala.math.BigDecimal.decimal
