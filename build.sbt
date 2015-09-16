@@ -28,7 +28,7 @@ libraryDependencies ++= Seq(
   ws,
   filters,
   PlayImport.specs2,
-  "com.gu" %% "membership-common" % "0.85",
+  "com.gu" %% "membership-common" % "0.88-SNAPSHOT",
   "com.gu" %% "play-googleauth" % "0.3.1",
   "com.gu" %% "identity-test-users" % "0.5",
   "com.gu.identity" %% "identity-play-auth" % "0.8",
@@ -44,6 +44,17 @@ libraryDependencies ++= Seq(
 testOptions in Test ++= Seq(
   Tests.Argument("-oFD") // display full stack errors and execution times in Scalatest output
 )
+
+testResultLogger in Test := new TestResultLogger {
+  import sbt.Tests._
+
+  def run(log: Logger, results: Output, taskName: String): Unit = {
+    results.overall match {
+      case TestResult.Error | TestResult.Failed => sys.exit(1)
+      case _ =>
+    }
+  }
+}
 
 javaOptions in Test += "-Dconfig.file=test/conf/application.conf"
 
