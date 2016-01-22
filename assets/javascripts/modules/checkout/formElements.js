@@ -1,5 +1,7 @@
 define(['$'], function ($) {
     'use strict';
+    var _PLAN_SELECT = $('.js-payment-frequency');
+    var _PLAN_INPUTS = $('input[type="radio"]', _PLAN_SELECT);
 
     var requiredPersonalFields = function () {
         var result = [];
@@ -10,6 +12,17 @@ define(['$'], function ($) {
             }
         });
         return result;
+    };
+
+    var getRatePlanId = function () {
+        // Bonzo has no filter function :(
+        var ratePlanId = null;
+        _PLAN_INPUTS.each(function (input) {
+            if ($(input).attr('checked')) {
+                ratePlanId = input.value;
+            }
+        });
+        return ratePlanId;
     };
 
     return {
@@ -26,6 +39,10 @@ define(['$'], function ($) {
         $ADDRESS2: $('.js-checkout-street .js-input'),
         $ADDRESS3: $('.js-checkout-town .js-input'),
         $POSTCODE: $('.js-checkout-postcode .js-input'),
+
+        // Promo Code:
+        $PROMO_CODE : $('.js-checkout-promo-code .js-input'),
+
 
         $PAYMENT_METHOD: $('.js-checkout-payment-method .js-option-switch'),
 
@@ -83,9 +100,10 @@ define(['$'], function ($) {
 
         $BASKET: $('.js-basket'),
 
-        $PLAN_SELECT: $('.js-payment-frequency'),
         $COUNTRY_SELECT: $('.js-country'),
+        $PLAN_INPUTS :_PLAN_INPUTS,
 
-        requiredPersonalFields: requiredPersonalFields
+        requiredPersonalFields: requiredPersonalFields,
+        getRatePlanId: getRatePlanId
     };
 });

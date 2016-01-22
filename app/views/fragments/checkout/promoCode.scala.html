@@ -1,0 +1,24 @@
+<div class="field-group">
+    <div class="form-field js-promo-code field-group__item">
+        <span class="label">Promo Code</span>
+        <div class="card-expiry js-checkout-promo-code">
+
+                <label class="label label--inline u-sr-only  js-checkout-promo-code" for="promo-code">BORK BORK BORK</label>
+                <input class="input-text js-input"
+                class="js-promo-code">
+            @fragments.forms.errorMessage("")
+
+            <a class="button button--primary button--large js-checkout-promo-code-validate">Validate</a>
+                <div class="loader js-personal-details-validating">Validating...</div>
+            <div class="js-promo-code-info">
+                <img src="" class="js-promo-code-image"/>
+                <span class="js-promo-code-message"></span>
+
+            </div>
+            @fragments.forms.errorMessage("Please, please enter a valid promo code.")
+
+        </div>
+    </div>
+
+
+</div>

@@ -22,10 +22,8 @@ define([
         return $('.js-checkout-postcode');
     };
 
-    var $PLAN_INPUTS = $('input[type="radio"]', formElements.$PLAN_SELECT);
-
     var checkPlanInput = function (ratePlanId) {
-        $PLAN_INPUTS.each(function(input) {
+        formElements.$PLAN_INPUTS.each(function(input) {
             if ($(input).val() === ratePlanId && !$(input).attr('disabled')) {
                 check(input);
             }
@@ -73,29 +71,17 @@ define([
         selectPaymentMethod(model.country);
     };
 
-    var getRatePlanId = function () {
-        // Bonzo has no filter function :(
-        var ratePlanId = null;
-        $PLAN_INPUTS.each(function (input) {
-            if ($(input).attr('checked')) {
-                ratePlanId = input.value;
-            }
-        });
-        return ratePlanId;
-    };
-
     var getCurrentState = function() {
-        var countrySelect = formElements.$COUNTRY_SELECT[0];
-        var currentCountryOption = countrySelect.options[countrySelect.selectedIndex];
-        var rules = countryChoice.addressRules(currentCountryOption);
 
+        var currentCountryOption = $(countryChoice.getCurrentCountryOption());
+        var rules = countryChoice.addressRules();
         return {
             postcode: $('input', postcode()).val(),
             postcodeRules: rules.postcode,
             subdivisionRules: rules.subdivision,
-            currency: $(currentCountryOption).attr('data-currency-choice'),
-            country: $(currentCountryOption).val(),
-            ratePlanId: getRatePlanId()
+            currency: currentCountryOption.attr('data-currency-choice'),
+            country: currentCountryOption.val(),
+            ratePlanId: formElements.getRatePlanId()
         };
     };
 

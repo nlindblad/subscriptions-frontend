@@ -1,7 +1,15 @@
-define([], function () {
+define([
+    'modules/checkout/formElements'
+], function (formElements) {
     'use strict';
 
-    var addressRules = function (option) {
+    var getCurrentCountryOption = function () {
+        var countrySelect = formElements.$COUNTRY_SELECT[0];
+        var currentCountryOption = countrySelect.options[countrySelect.selectedIndex];
+        return currentCountryOption;
+    };
+    var addressRules = function () {
+        var option = getCurrentCountryOption();
         var postcodeRequired = option.getAttribute('data-postcode-required');
         var postcodeLabel = option.getAttribute('data-postcode-label');
 
@@ -17,6 +25,8 @@ define([], function () {
     };
 
     return {
-        addressRules: addressRules
+        addressRules: addressRules,
+        getCurrentCountryOption: getCurrentCountryOption
+
     };
 });
