@@ -42,7 +42,9 @@ define(['$'], function ($) {
 
         // Promo Code:
         $PROMO_CODE : $('.js-checkout-promo-code .js-input'),
-
+        $PROMOCODE_MSG: $('.js-promo-code-message'),
+        $PROMOCODE_IMG: $('.js-promo-code-image'),
+        $PROMOCODE_BTN: $('.js-checkout-promo-code-validate'),
 
         $PAYMENT_METHOD: $('.js-checkout-payment-method .js-option-switch'),
 

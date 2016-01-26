@@ -1,17 +1,32 @@
+@import controllers.routes.Checkout.validatePromoCode
+@import com.gu.memsub.promo.PromoCode
+@import com.gu.memsub.Subscription.ProductRatePlanId
+@import com.gu.i18n.Country
+
+@()
+@defining(
+  // use Play reverse routing to get the action request path
+  validatePromoCode(
+      PromoCode("_"),
+      ProductRatePlanId("_"),
+      Country.UK).path.replaceFirst("\\?.*", "")) { lookupUrl =>
+
 <div class="field-group">
     <div class="form-field js-promo-code field-group__item">
         <span class="label">Promo Code</span>
         <div class="card-expiry js-checkout-promo-code">
             <label class="label label--inline u-sr-only  js-checkout-promo-code" for="promo-code">LOREM IPSUM DOLOR</label>
-            <input class="input-text js-input js-promo-code" data-lookup-url="/checkout/lookupPromotion"> <!-- TODO do reverse routing to find this URL path -->
-            @fragments.forms.errorMessage("")
+            <input name="promo-code" class="input-text js-input js-promo-code" data-lookup-url="@lookupUrl">
             <a class="button button--primary button--large js-checkout-promo-code-validate" >Validate</a>
                 <div class="loader js-personal-details-validating">Validating...</div>
+
             <div class="js-promo-code-info">
                 <img src="" class="js-promo-code-image"/>
                 <span class="js-promo-code-message"></span>
             </div>
+
             @fragments.forms.errorMessage("Please, please enter a valid promo code.")
         </div>
     </div>
 </div>
+}
