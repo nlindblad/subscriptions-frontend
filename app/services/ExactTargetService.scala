@@ -1,9 +1,9 @@
 package services
 
 import akka.agent.Agent
-import com.gu.memsub.Subscription
-import com.gu.zuora.api.ZuoraService
-import com.gu.zuora.soap.models.Results.SubscribeResult
+import com.gu.memsub.Subscription.Paid
+import com.gu.memsub.{PaymentMethod, Subscription}
+import com.gu.services.model.{BillingSchedule, PaymentDetails}
 import com.squareup.okhttp.Request.Builder
 import com.squareup.okhttp.{MediaType, OkHttpClient, RequestBody, Response}
 import com.typesafe.scalalogging.LazyLogging
@@ -16,38 +16,22 @@ import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-trait ExactTargetService extends LazyLogging {
+class ExactTargetService extends LazyLogging {
   lazy val etClient: ETClient = ETClient
-  def zuoraService: ZuoraService
 
-  def sendETDataExtensionRow(subscribeResult: SubscribeResult, subscriptionData: SubscriptionData): Future[Unit] = {
-    val subscription = zuoraService.getSubscription(Subscription.Name(subscribeResult.subscriptionName))
-
-    val accAndPaymentMethod = for {
-      subs <- subscription
-      acc <- zuoraService.getAccount(subs)
-      pm <- zuoraService.getDefaultPaymentMethod(acc)
-    } yield (acc, pm)
-
-    for {
-      subs <- subscription
-      rpc <- zuoraService.recurringRatePlanCharge(subs)
-      (acc, pm) <- accAndPaymentMethod
-      row = SubscriptionDataExtensionRow(
-        subscription = subs,
-        subscriptionData = subscriptionData,
-        ratePlanCharge = rpc,
-        paymentMethod = pm,
-        account = acc
-      )
-      response <- etClient.sendSubscriptionRow(row)
-    } yield {
+  def sendETDataExtensionRow(billingSchedule: BillingSchedule,
+                             paymentMethod: PaymentMethod,
+                             subscription: Subscription with Paid,
+                             subscriptionData: SubscriptionData): Future[Unit] = {
+    val row = SubscriptionDataExtensionRow(billingSchedule, paymentMethod, subscription, subscriptionData)
+    etClient.sendSubscriptionRow(row).map { response =>
+      val email = subscriptionData.personalData.email
       response.code() match {
         case 202 =>
-          logger.info(s"Successfully sent an email to confirm the subscription: $subscribeResult")
+          logger.info(s"Successfully sent an email to confirm the subscription to $email")
         case _ =>
           logger.error(
-            s"Failed to send the subscription email $subscribeResult. Code: ${response.code()}, Message: ${response.body.string()}")
+            s"Failed to send the subscription email to $email. Code: ${response.code()}, Message: ${response.body.string()}")
       }
     }
   }

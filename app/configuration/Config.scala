@@ -120,4 +120,6 @@ object Config {
     val api = new CASApi(CAS.url, metrics)
     new CASService(api)
   }
+
+  implicit val productFamily = Digipack
 }

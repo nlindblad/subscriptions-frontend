@@ -2,7 +2,7 @@ package services
 
 import com.gu.config.ProductFamilyRatePlanIds
 import com.gu.memsub.Digipack
-import com.gu.memsub.services.{CatalogService, PromoService, api}
+import com.gu.memsub.services.{PaymentService => CommonPaymentService, SubscriptionService, CatalogService, PromoService, api}
 import com.gu.monitoring.{ServiceMetrics, StatusMetrics}
 import com.gu.stripe.StripeService
 import com.gu.zuora
@@ -15,6 +15,7 @@ import play.api.mvc.RequestHeader
 import touchpoint.TouchpointBackendConfig.BackendType
 import touchpoint.{TouchpointBackendConfig, ZuoraProperties}
 import utils.TestUsers._
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 object TouchpointBackend {
 
@@ -38,12 +39,16 @@ object TouchpointBackend {
       val backendEnv = config.stripe.envName
       val service = "Stripe"
     })
+    val subscriptionService = new SubscriptionService(zuoraService, _stripeService, catalogService)
     val paymentService = new PaymentService {
       override def stripeService = _stripeService
+      override def commonPaymentService =
+        new CommonPaymentService(_stripeService, subscriptionService, zuoraService, catalogService)
     }
 
     TouchpointBackend(
       config.environmentName,
+      subscriptionService,
       salesforceService,
       catalogService,
       zuoraService,
@@ -78,6 +83,7 @@ object TouchpointBackend {
 }
 
 case class TouchpointBackend(environmentName: String,
+                             subscriptionService: SubscriptionService,
                              salesforceService: SalesforceService,
                              catalogService : api.CatalogService,
                              zuoraService: zuora.api.ZuoraService,
@@ -85,14 +91,11 @@ case class TouchpointBackend(environmentName: String,
                              zuoraProperties: ZuoraProperties,
                              promoService: PromoService) {
 
-  private val that = this
-
-  private val exactTargetService = new ExactTargetService {
-    override def zuoraService = that.zuoraService
-  }
+  private val exactTargetService = new ExactTargetService()
 
   val checkoutService =
     new CheckoutService(IdentityService,
+                        subscriptionService,
                         salesforceService,
                         paymentService,
                         catalogService,

@@ -1,14 +1,16 @@
 package services
 
 import com.gu.identity.play.AuthenticatedIdUser
+import com.gu.memsub.Subscription.AccountId
 import com.gu.memsub.services.PromoService
-import com.gu.memsub.services.api.CatalogService
+import com.gu.memsub.services.api.{CatalogService, SubscriptionService}
 import com.gu.salesforce.ContactId
 import com.gu.zuora.api.ZuoraService
 import com.gu.zuora.soap.models.Results.SubscribeResult
 import com.typesafe.scalalogging.LazyLogging
 import model._
 import touchpoint.ZuoraProperties
+import configuration.Config.productFamily
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -18,6 +20,7 @@ object CheckoutService {
 }
 
 class CheckoutService(identityService: IdentityService,
+                      subscriptionService: SubscriptionService,
                       salesforceService: SalesforceService,
                       paymentService: PaymentService,
                       catalogService: CatalogService,
@@ -38,9 +41,6 @@ class CheckoutService(identityService: IdentityService,
     def updateAuthenticatedUserDetails(): Unit =
       authenticatedUserOpt.foreach(identityService.updateUserDetails(personalData))
 
-    def sendETDataExtensionRow(subscribeResult: SubscribeResult): Future[Unit] =
-      exactTargetService.sendETDataExtensionRow(subscribeResult, subscriptionData)
-
     val userOrElseRegisterGuest: Future[UserIdData] =
       authenticatedUserOpt.map(authenticatedUser => Future {
         RegisteredUser(authenticatedUser.user)
@@ -56,15 +56,30 @@ class CheckoutService(identityService: IdentityService,
         if promotion.validateFor(subscriptionData.productRatePlanId, personalData.address.country).isRight
       } yield code
 
+    def sendEmail(contactId: ContactId, accountId: AccountId) = {
+      subscriptionService.unsafeGetPaid(contactId)
+        .zip(paymentService.paymentMethod(accountId))
+        .flatMap { case (subscription, paymentMethod) =>
+          subscriptionService.billingSchedule(subscription).map { schedule =>
+            lazy val exception = new NoSuchElementException(s"Could not make a billing schedule for subscription ${subscription.name.get}")
+            schedule.map { s =>
+              exactTargetService.sendETDataExtensionRow(s, paymentMethod, subscription, subscriptionData)
+            }.getOrElse(Future.failed(exception))
+          }
+        } recover { case err: Throwable =>
+          logger.error(s"Error while trying to send a confirmation email to account ${accountId.get}", err)
+        }
+    }
+
     for {
       userData <- userOrElseRegisterGuest
-      memberId <- salesforceService.createOrUpdateUser(personalData, userData.id)
+      contactId <- salesforceService.createOrUpdateUser(personalData, userData.id)
       payment = subscriptionData.paymentData match {
         case paymentData@DirectDebitData(_, _, _) =>
-          paymentService.makeDirectDebitPayment(paymentData, personalData, memberId)
+          paymentService.makeDirectDebitPayment(paymentData, personalData, contactId)
         case paymentData@CreditCardData(_) =>
           val plan = catalogService.digipackCatalog.unsafeFind(subscriptionData.productRatePlanId)
-          paymentService.makeCreditCardPayment(paymentData, personalData, userData, memberId, plan)
+          paymentService.makeCreditCardPayment(paymentData, personalData, userData, contactId, plan)
       }
       method <- payment.makePaymentMethod
       result <- zuoraService.createSubscription(
@@ -76,11 +91,10 @@ class CheckoutService(identityService: IdentityService,
         promoCode = validPromoCode,
         paymentDelay = Some(zuoraProperties.paymentDelayInDays),
         ipAddressOpt = requestData.ipAddress.map(_.getHostAddress))
-
     } yield {
       updateAuthenticatedUserDetails()
-      sendETDataExtensionRow(result)
-      CheckoutResult(memberId, userData, result)
+      sendEmail(contactId, AccountId(result.accountId))
+      CheckoutResult(contactId, userData, result)
     }
   }
 }
