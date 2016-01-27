@@ -101,7 +101,7 @@ object Checkout extends Controller with LazyLogging with ActivityTracking with C
       }
 
       val session = (Seq(
-        SessionKeys.SubsName -> result.subscribeResult.name,
+        SessionKeys.SubsName -> result.subscribeResult.subscriptionName,
         SessionKeys.RatePlanId -> formData.productRatePlanId.get
       ) ++ userSessionFields).foldLeft(request.session) { _ + _ }
 

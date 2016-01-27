@@ -1,6 +1,7 @@
 package services
 
 import akka.agent.Agent
+import com.gu.memsub.Subscription
 import com.gu.zuora.api.ZuoraService
 import com.gu.zuora.soap.models.Results.SubscribeResult
 import com.squareup.okhttp.Request.Builder
@@ -8,20 +9,19 @@ import com.squareup.okhttp.{MediaType, OkHttpClient, RequestBody, Response}
 import com.typesafe.scalalogging.LazyLogging
 import configuration.Config
 import model.SubscriptionData
-import model.exactTarget.{ExactTargetException, SubscriptionDataExtensionRow}
+import model.exactTarget.SubscriptionDataExtensionRow
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import com.gu.memsub.Subscription
 trait ExactTargetService extends LazyLogging {
   lazy val etClient: ETClient = ETClient
   def zuoraService: ZuoraService
 
   def sendETDataExtensionRow(subscribeResult: SubscribeResult, subscriptionData: SubscriptionData): Future[Unit] = {
-    val subscription = zuoraService.getSubscription(Subscription.Name(subscribeResult.name))
+    val subscription = zuoraService.getSubscription(Subscription.Name(subscribeResult.subscriptionName))
 
     val accAndPaymentMethod = for {
       subs <- subscription
