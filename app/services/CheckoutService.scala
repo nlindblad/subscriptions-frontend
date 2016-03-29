@@ -41,7 +41,7 @@ class CheckoutService(identityService: IdentityService,
     val plan = RatePlan(subscriptionData.productRatePlanId.get, None)
 
     authenticatedUserOpt match {
-      case Some(authenticatedIdUser) => registeredUserBecomesSubscriber(
+      case Some(authenticatedIdUser) => userBecomesSubscriber(
         authenticatedUserOpt, personalData, RegisteredUser(authenticatedIdUser.user), requestData, plan, subscriptionData)
 
       case _ =>
@@ -49,7 +49,7 @@ class CheckoutService(identityService: IdentityService,
 
         def success(personalData: PersonalData, requestData: SubscriptionRequestData,
                     plan: RatePlan, subscriptionData: SubscriptionData)(identity: IdentitySuccess) =
-          guestUserBecomesSubscriber(personalData, identity.userData, requestData, plan, subscriptionData)
+          userBecomesSubscriber(None, personalData, identity.userData, requestData, plan, subscriptionData)
 
         def failure(errSeq: NonEmptyList[SubsError]) = Future.successful(\/.left(errSeq.<::(CheckoutIdentityFailure(
           "User could not subscribe during checkout because Identity guest account could not be created",
@@ -61,32 +61,17 @@ class CheckoutService(identityService: IdentityService,
     }
   }
 
-  private def registeredUserBecomesSubscriber(
+  private def userBecomesSubscriber(
        authenticatedUserOpt: Option[AuthenticatedIdUser],
        personalData: PersonalData,
        userData: UserIdData,
        requestData: SubscriptionRequestData,
        plan: RatePlan,
-       subscriptionData: SubscriptionData): Future[NonEmptyList[SubsError] \/ CheckoutSuccess] =
+       subscriptionData: SubscriptionData): Future[NonEmptyList[SubsError] \/ CheckoutSuccess] = {
 
-    (for {
-      memberId <- EitherT(createOrUpdateUser(personalData, userData, subscriptionData))
-      subscribe <- EitherT(createSubscribeRequest(personalData, requestData, plan, userData, memberId, subscriptionData))
-      withPromo = promoService.applyPromotion(subscribe, subscriptionData.suppliedPromoCode, Some(personalData.country))
-      withGrace = withPromo.copy(paymentDelay = withPromo.paymentDelay.map(_.plus(zuoraProperties.gracePeriodInDays)))
-      result <- EitherT(createSubscription(withGrace, userData, subscriptionData))
-      _ <- EitherT(updateAuthenticatedUserDetails(authenticatedUserOpt, personalData, subscriptionData))
-      _ <- EitherT(sendETDataExtensionRow(result, subscriptionData))
-    } yield {
-      CheckoutSuccess(memberId, userData, result, subscribe.promoCode)
-    }).run
-
-  private def guestUserBecomesSubscriber(
-      personalData: PersonalData,
-      userData: UserIdData,
-      requestData: SubscriptionRequestData,
-      plan: RatePlan,
-      subscriptionData: SubscriptionData): Future[NonEmptyList[SubsError] \/ CheckoutSuccess] =
+    val identityUpdate = authenticatedUserOpt.map(
+      updateAuthenticatedUserDetails(_, personalData, subscriptionData)
+    ).getOrElse(Future.successful(\/.right(Unit))) // just say we succeeded if we did no update
 
     (for {
       memberId <- EitherT(createOrUpdateUser(personalData, userData, subscriptionData))
@@ -95,16 +80,18 @@ class CheckoutService(identityService: IdentityService,
       withGrace = withPromo.copy(paymentDelay = withPromo.paymentDelay.map(_.plus(zuoraProperties.gracePeriodInDays)))
       result <- EitherT(createSubscription(withGrace, userData, subscriptionData))
       _ <- EitherT(sendETDataExtensionRow(result, subscriptionData))
+      _ <- EitherT(identityUpdate)
     } yield {
       CheckoutSuccess(memberId, userData, result, subscribe.promoCode)
     }).run
+  }
 
   private def updateAuthenticatedUserDetails(
-      authenticatedUserOpt: Option[AuthenticatedIdUser],
+      authenticatedUser: AuthenticatedIdUser,
       personalData: PersonalData,
       subscriptionData: SubscriptionData): Future[NonEmptyList[SubsError] \/ IdentitySuccess] =
 
-    identityService.updateUserDetails(personalData)(authenticatedUserOpt.get).map {
+    identityService.updateUserDetails(personalData)(authenticatedUser).map {
       case \/-(IdentitySuccess(user)) => \/.right(IdentitySuccess(user))
 
       case -\/(errSeq) =>
